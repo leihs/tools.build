@@ -13,7 +13,8 @@
     [clojure.tools.build.util.file :as file])
   (:import
     [java.io File]
-    [java.nio.file FileSystems FileVisitor FileVisitResult Files Path LinkOption]))
+    [java.util EnumSet]
+    [java.nio.file FileSystems FileVisitor FileVisitOption FileVisitResult Files Path LinkOption]))
 
 (set! *warn-on-reflection* true)
 
@@ -36,7 +37,7 @@
                   (visitFileFailed [_ _path _ex] FileVisitResult/CONTINUE)
                   (preVisitDirectory [_ _ _] FileVisitResult/CONTINUE)
                   (postVisitDirectory [_ _ _] FileVisitResult/CONTINUE))]
-    (Files/walkFileTree root-path visitor)
+    (Files/walkFileTree root-path (EnumSet/of FileVisitOption/FOLLOW_LINKS) Integer/MAX_VALUE visitor)
     @paths))
 
 (def default-ignores
