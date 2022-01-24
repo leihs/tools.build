@@ -5,9 +5,23 @@
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.tools.build.util.file :as file]
-    [clojure.tools.build.api.specs :as specs])
+    [clojure.tools.build.api.specs :as specs]
+    [taoensso.timbre :as timbre :refer [debug info warn error spy]]
+    )
   (:import
     [java.io File]))
+
+(defn init-logging []
+  (timbre/merge-config!
+    {:min-level [[#{
+                    ;"clojure.tools.build.util.file"
+                    ;"clojure.tools.build.tasks.copy"
+                    } :debug]
+                 [#{"clojure.tools.*"} :info]
+                 [#{"*"} :warn]]
+     :log-level nil})
+  (info "initialized logging " (pr-str timbre/*config*)))
+
 
 (set! *warn-on-reflection* true)
 
@@ -462,6 +476,7 @@
      \"(?i)^(META-INF/)?(COPYRIGHT|NOTICE|LICENSE)(\\\\.(txt|md))?$\" :append-dedupe
      :default :ignore}"
   [params]
+  (init-logging)
   (assert-required "uber" params [:class-dir :uber-file])
   (assert-specs "uber" params
     :class-dir ::specs/path

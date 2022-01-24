@@ -9,6 +9,7 @@
 (ns clojure.tools.build.util.file
   (:require
     [clojure.java.io :as jio]
+    [taoensso.timbre :as timbre :refer [debug info warn error spy]]
     [clojure.string :as str])
   (:import
     [java.io File]
@@ -56,8 +57,10 @@
 (defn copy-file
   "Copy file from src to target, retaining file attributes. Returns nil."
   [^File src-file ^File target-file]
+  (debug 'copy-file src-file target-file copy-options)
   (.mkdirs target-file)
   (Files/copy (.toPath src-file) (.toPath target-file) copy-options)
+  (debug 'copied)
   nil)
 
 (defn copy-contents

@@ -10,11 +10,15 @@
   (:require
     [clojure.string :as str]
     [clojure.tools.build.api :as api]
-    [clojure.tools.build.util.file :as file])
+    [clojure.tools.build.util.file :as file]
+    [taoensso.timbre :as timbre :refer [debug info warn error spy]]
+    )
   (:import
     [java.io File]
     [java.util EnumSet]
     [java.nio.file FileSystems FileVisitor FileVisitOption FileVisitResult Files Path LinkOption]))
+
+
 
 (set! *warn-on-reflection* true)
 
@@ -26,15 +30,23 @@
 (defn- match-paths
   "Match glob to paths under root and return a collection of Path objects"
   [^File root glob]
+  ;(debug ">>>>>>")
+  ;(debug 'match-paths [root glob])
+  ;(debug "<<<<<<")
   (let [root-path (.toPath root)
         matcher (.getPathMatcher (FileSystems/getDefault) (str "glob:" glob))
         paths (volatile! [])
         visitor (reify FileVisitor
                   (visitFile [_ path _attrs]
+                    ;(debug 'FileVisitor [_ path _attrs])
+                    ;(when (= root "./resources"))
                     (when (.matches matcher (.relativize root-path ^Path path))
                       (vswap! paths conj path))
                     FileVisitResult/CONTINUE)
-                  (visitFileFailed [_ _path _ex] FileVisitResult/CONTINUE)
+                  (visitFileFailed [_ _path _ex]
+                    ;(debug 'FileVisitorFailed [_ _path _ex])
+                    ;(when (= root "./resources"))
+                    FileVisitResult/CONTINUE)
                   (preVisitDirectory [_ _ _] FileVisitResult/CONTINUE)
                   (postVisitDirectory [_ _ _] FileVisitResult/CONTINUE))]
     (Files/walkFileTree root-path (EnumSet/of FileVisitOption/FOLLOW_LINKS) Integer/MAX_VALUE visitor)
@@ -76,10 +88,14 @@
           (let [path-file (.toFile path)
                 path-file-name (.getName path-file)
                 target-file (.toFile (.resolve to-path (.relativize (.toPath from-file) path)))]
+            (debug "PATH>>>:" [path path-file path-file-name target-file])
             (when-not (ignore? path-file-name ignore-regexes)
+              (debug "copying" (.toString path-file) (.toString target-file) (boolean (not (empty? replace))))
               ;(println "copying" (.toString path-file) (.toString target-file) (boolean (not (empty? replace))))
               (if (or (empty? replace) (ends-with-ext? non-replaced (.getName path-file)))
-                (file/copy-file path-file target-file)
+                (do
+                  (debug 'file/copy-file path-file target-file)
+                  (file/copy-file path-file target-file))
                 (let [contents (slurp path-file)
                       replaced (reduce (fn [s [find replace]] (str/replace s find replace))
                                  contents replace)
